@@ -185,7 +185,7 @@ function applyFiltersAndSearch(
   result = result.filter((c) => matchesAudioDuration(c, filters.audioDuration));
 
   if (filters.sort === "alphabetical") {
-    result.sort((a, b) => a.title.localeCompare(b.title));
+    result.sort((a, b) => a.title.localeCompare(b.title, "en"));
   } else if (filters.sort === "last_opened") {
     result.sort(
       (a, b) =>

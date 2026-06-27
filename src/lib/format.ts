@@ -1,3 +1,14 @@
+export const DISPLAY_LOCALE = "en-US" as const;
+
+export function formatDisplayDate(date: Date | string): string {
+  const value = typeof date === "string" ? new Date(date) : date;
+  return value.toLocaleDateString(DISPLAY_LOCALE, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export function formatDistanceToNow(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -10,5 +21,8 @@ export function formatDistanceToNow(dateString: string): string {
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return date.toLocaleDateString(DISPLAY_LOCALE, {
+    month: "short",
+    day: "numeric",
+  });
 }

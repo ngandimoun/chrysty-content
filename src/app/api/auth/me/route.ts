@@ -2,7 +2,9 @@ import { auth } from "@chrysty/platform";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { configurePlatformForToken } from "@/lib/chrysty/platform";
+import { getDefaultContentKeyForUser } from "@/lib/content/user-workspace";
 import { getServerSession } from "@/lib/chrysty/server-session";
+import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(request);
@@ -15,11 +17,17 @@ export async function GET(request: NextRequest) {
 
   try {
     const user = await auth.getUser();
+    const contentKey =
+      isSupabaseConfigured()
+        ? await getDefaultContentKeyForUser(user.id)
+        : null;
+
     return NextResponse.json({
       id: user.id,
       email: user.email,
       fullName: user.fullName,
       avatarUrl: user.avatarUrl,
+      contentKey,
     });
   } catch {
     return NextResponse.json(

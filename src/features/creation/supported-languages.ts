@@ -85,7 +85,7 @@ const LANGUAGE_ENTRIES: SupportedLanguage[] = [
 ];
 
 export const SUPPORTED_LANGUAGES: SupportedLanguage[] = [...LANGUAGE_ENTRIES].sort(
-  (a, b) => a.label.localeCompare(b.label),
+  (a, b) => a.label.localeCompare(b.label, "en"),
 );
 
 export const DEFAULT_CREATION_LANGUAGE = "en";

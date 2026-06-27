@@ -17,6 +17,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useOptionalAuth } from "@/components/providers/auth-provider";
+import { formatDisplayDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -301,7 +302,7 @@ export function ViewerOptionsMenu({
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Created</dt>
-              <dd>{new Date(creation.createdAt).toLocaleDateString()}</dd>
+              <dd>{formatDisplayDate(creation.createdAt)}</dd>
             </div>
             {creation.pageCount ? (
               <div className="flex justify-between gap-4">

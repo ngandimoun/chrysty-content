@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 
-import { CONTENT_KEY_HEADER } from "@/lib/content/constants";
+import { CONTENT_KEY_HEADER, CONTENT_KEY_STORAGE } from "@/lib/content/constants";
 import { getOrCreateContentKey } from "@/lib/content/identity";
 import { getLoginRedirectUrl } from "@/lib/chrysty/constants";
 import { configurePlatformForBrowser } from "@/lib/chrysty/platform";
@@ -19,11 +19,16 @@ import { isBrowserSupabaseConfigured } from "@/lib/supabase/browser";
 interface AuthUser {
   id: string;
   email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  contentKey?: string | null;
 }
 
 interface AuthContextValue {
   userId: string | null;
   email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
   loading: boolean;
   signIn: () => void;
   signOut: () => Promise<void>;
@@ -61,7 +66,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch("/api/auth/me", { credentials: "include" });
       if (response.ok) {
         const data = (await response.json()) as AuthUser;
-        setUser({ id: data.id, email: data.email });
+        if (data.contentKey) {
+          window.localStorage.setItem(CONTENT_KEY_STORAGE, data.contentKey);
+        }
+        setUser({
+          id: data.id,
+          email: data.email,
+          fullName: data.fullName ?? null,
+          avatarUrl: data.avatarUrl ?? null,
+        });
         await mergeProgress();
       } else {
         setUser(null);
@@ -99,6 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       userId: user?.id ?? null,
       email: user?.email ?? null,
+      fullName: user?.fullName ?? null,
+      avatarUrl: user?.avatarUrl ?? null,
       loading,
       signIn,
       signOut,

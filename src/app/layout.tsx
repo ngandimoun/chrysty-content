@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   title: "Chrysty — Your Creative Library",
   description:
     "Create, organize, and continue your stories, podcasts, speeches, and more.",
+  icons: {
+    icon: [{ url: "/icon", type: "image/png" }],
+    apple: [{ url: "/apple-icon", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({

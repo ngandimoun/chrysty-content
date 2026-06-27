@@ -12,8 +12,6 @@ export const CREATION_LIST_GRID_CLASS =
 export const CREATION_SECTION_HEADING_CLASS =
   "mb-4 text-lg font-semibold tracking-tight md:text-xl lg:text-lg";
 
-export const USER_NAME = "Chris";
-
 export const CREATION_TYPE_LABELS: Record<CreationType, string> = {
   story: "Story",
   podcast: "Podcast",
