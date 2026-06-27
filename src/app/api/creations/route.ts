@@ -20,13 +20,23 @@ import {
 } from "@/features/creation/reference-files";
 import {
   PlatformAccessError,
+  assertAuthenticatedRequest,
   requirePlatformAccess,
+  respondPlatformAccessError,
 } from "@/lib/chrysty/guard";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json([]);
+  }
+
+  try {
+    await assertAuthenticatedRequest(request);
+  } catch (error) {
+    const response = respondPlatformAccessError(error);
+    if (response) return response;
+    throw error;
   }
 
   const identity = await resolveIdentityFromRequest(request);

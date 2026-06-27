@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { uploadCreationAsset } from "@/lib/content/assets";
 import { getContentKeyFromRequest } from "@/lib/content/request";
+import { requireApiAuth } from "@/lib/chrysty/api-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import {
   assetMetadataSchema,
@@ -22,6 +23,9 @@ export async function POST(request: Request, context: RouteContext) {
       { status: 503 },
     );
   }
+
+  const authError = await requireApiAuth(request);
+  if (authError) return authError;
 
   const contentKey = getContentKeyFromRequest(request);
   if (!contentKey) {

@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 
 import { mergeAnonymousProgress } from "@/lib/content/merge-anonymous-progress";
 import { getContentKeyFromRequest } from "@/lib/content/request";
+import {
+  assertAuthenticatedRequest,
+  respondPlatformAccessError,
+} from "@/lib/chrysty/guard";
 import { getUserIdFromRequest } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
@@ -11,6 +15,14 @@ export async function POST(request: Request) {
       { error: "Supabase is not configured" },
       { status: 503 },
     );
+  }
+
+  try {
+    await assertAuthenticatedRequest(request);
+  } catch (error) {
+    const response = respondPlatformAccessError(error);
+    if (response) return response;
+    throw error;
   }
 
   const contentKey = getContentKeyFromRequest(request);

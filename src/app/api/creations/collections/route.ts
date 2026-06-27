@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { buildCollections } from "@/lib/content/consumption";
 import { listCreations } from "@/lib/content/creations";
 import { resolveIdentityFromRequest } from "@/lib/content/resolve-identity";
+import {
+  assertAuthenticatedRequest,
+  respondPlatformAccessError,
+} from "@/lib/chrysty/guard";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import type { CollectionShelfId } from "@/types/consumption";
 
@@ -22,6 +26,14 @@ export async function GET(request: Request) {
       { error: "Supabase is not configured" },
       { status: 503 },
     );
+  }
+
+  try {
+    await assertAuthenticatedRequest(request);
+  } catch (error) {
+    const response = respondPlatformAccessError(error);
+    if (response) return response;
+    throw error;
   }
 
   const identity = await resolveIdentityFromRequest(request);

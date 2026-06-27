@@ -7,6 +7,7 @@ import {
 import { getContentKeyFromCoverRequest } from "@/lib/content/cover-request";
 import { extractCreationMetadata } from "@/lib/content/mappers";
 import { getCreationById } from "@/lib/content/creations";
+import { requireApiAuth } from "@/lib/chrysty/api-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
 interface RouteContext {
@@ -20,6 +21,9 @@ export async function GET(request: Request, context: RouteContext) {
       { status: 503 },
     );
   }
+
+  const authError = await requireApiAuth(request);
+  if (authError) return authError;
 
   const contentKey = getContentKeyFromCoverRequest(request);
   if (!contentKey) {

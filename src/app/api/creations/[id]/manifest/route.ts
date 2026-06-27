@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { loadCreationManifest } from "@/lib/content/manifests";
 import { getContentKeyFromRequest } from "@/lib/content/request";
+import { requireApiAuth } from "@/lib/chrysty/api-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
 interface RouteContext {
@@ -15,6 +16,9 @@ export async function GET(request: Request, context: RouteContext) {
       { status: 503 },
     );
   }
+
+  const authError = await requireApiAuth(request);
+  if (authError) return authError;
 
   const contentKey = getContentKeyFromRequest(request);
   if (!contentKey) {

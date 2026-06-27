@@ -1,5 +1,5 @@
 import { auth, billing } from "@chrysty/platform";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { WORKER_SLUG } from "@/lib/chrysty/constants";
 import { configurePlatformForToken } from "@/lib/chrysty/platform";
@@ -12,6 +12,13 @@ export class PlatformAccessError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+export function respondPlatformAccessError(error: unknown): NextResponse | null {
+  if (error instanceof PlatformAccessError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+  return null;
 }
 
 export async function requireAuthenticatedUser(request: NextRequest) {
@@ -47,4 +54,8 @@ export async function requirePlatformAccess(request: NextRequest) {
   }
 
   return authResult;
+}
+
+export async function assertAuthenticatedRequest(request: Request): Promise<void> {
+  await requireAuthenticatedUser(request as NextRequest);
 }

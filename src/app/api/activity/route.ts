@@ -1,12 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { listRecentActivity } from "@/lib/content/creations";
 import { resolveIdentityFromRequest } from "@/lib/content/resolve-identity";
+import {
+  assertAuthenticatedRequest,
+  respondPlatformAccessError,
+} from "@/lib/chrysty/guard";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json([]);
+  }
+
+  try {
+    await assertAuthenticatedRequest(request);
+  } catch (error) {
+    const response = respondPlatformAccessError(error);
+    if (response) return response;
+    throw error;
   }
 
   const identity = await resolveIdentityFromRequest(request);

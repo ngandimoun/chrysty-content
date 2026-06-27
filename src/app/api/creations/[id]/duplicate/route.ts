@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCreationById, createCreation } from "@/lib/content/creations";
 import { resolveIdentityFromRequest } from "@/lib/content/resolve-identity";
+import { requireApiAuth } from "@/lib/chrysty/api-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 import type { CreationInput } from "@/features/creation/types";
 
@@ -16,6 +17,9 @@ export async function POST(request: Request, context: RouteContext) {
       { status: 503 },
     );
   }
+
+  const authError = await requireApiAuth(request);
+  if (authError) return authError;
 
   const identity = await resolveIdentityFromRequest(request);
   if (!identity) {
