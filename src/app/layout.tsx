@@ -29,6 +29,9 @@ export const metadata: Metadata = {
     icon: [{ url: "/icon", type: "image/png" }],
     apple: [{ url: "/apple-icon", type: "image/png" }],
   },
+  other: {
+    google: "notranslate",
+  },
 };
 
 export default function RootLayout({
@@ -37,9 +40,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" translate="no" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${literata.variable} min-h-screen font-sans antialiased`}
+        className={`notranslate ${geistSans.variable} ${geistMono.variable} ${literata.variable} min-h-screen font-sans antialiased`}
+        translate="no"
       >
         <ContentAppShell>
           <AppProviders>{children}</AppProviders>
