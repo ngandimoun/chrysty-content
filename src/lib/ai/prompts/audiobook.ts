@@ -103,6 +103,7 @@ Keep director notes TTS-safe: educational tone, no graphic violence references.
 Director notes should request clear, audible narration — avoid instructing whispers or very slow delivery throughout.
 
 For multi-segment plans, include a \`segments\` array with \`transcriptExcerpt\` per segmentId.
+REQUIRED: every plan segmentId must have a matching \`transcriptExcerpt\`. Each excerpt must be a non-overlapping partition of the full transcript (no segment may repeat the opening or entire script).
 
 Output JSON matching AudioDirection:
 {

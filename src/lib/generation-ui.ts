@@ -124,7 +124,7 @@ export function getCategoryAccent(category: CreationCategory): CategoryAccent {
 
 export function getGenerationHeadline(creation: Creation): string {
   if (creation.status === "failed") {
-    return "Generation paused";
+    return "Generation failed";
   }
 
   const step = creation.pipelineStep;

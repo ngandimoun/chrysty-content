@@ -7,6 +7,7 @@ import {
   getCreationAssetById,
 } from "@/lib/content/assets";
 import { getContentKeyFromCoverRequest } from "@/lib/content/cover-request";
+import { buildRangedBufferResponse } from "@/lib/content/range-response";
 import { requireApiAuth } from "@/lib/chrysty/api-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/admin";
 
@@ -14,7 +15,7 @@ interface RouteContext {
   params: Promise<{ id: string; assetId: string }>;
 }
 
-export async function GET(request: Request, context: RouteContext) {
+async function serveAsset(request: Request, context: RouteContext) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json(
       { error: "Supabase is not configured" },
@@ -45,23 +46,45 @@ export async function GET(request: Request, context: RouteContext) {
     let contentType = resolveAssetContentType(asset);
     let cacheControl = "private, max-age=3600";
 
-    if (contentType.startsWith("audio/") || asset.mime_type?.startsWith("audio/")) {
+    const isAudio =
+      contentType.startsWith("audio/") ||
+      asset.mime_type?.startsWith("audio/") ||
+      asset.asset_type === "audio";
+    const isWav =
+      isAudio &&
+      (contentType.includes("wav") ||
+        asset.mime_type?.includes("wav") ||
+        asset.storage_path.toLowerCase().endsWith(".wav"));
+
+    if (isWav) {
       buffer = repairWavBuffer(buffer, assetId);
       contentType = "audio/wav";
       cacheControl = "private, no-cache, must-revalidate";
+    } else if (
+      isAudio &&
+      (contentType.includes("mpeg") ||
+        asset.mime_type?.includes("mpeg") ||
+        asset.storage_path.toLowerCase().endsWith(".mp3"))
+    ) {
+      contentType = "audio/mpeg";
+      cacheControl = "private, no-cache, must-revalidate";
     }
 
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": cacheControl,
-        "Accept-Ranges": "bytes",
-      },
+    return buildRangedBufferResponse(buffer, request, {
+      "Content-Type": contentType,
+      "Cache-Control": cacheControl,
     });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to load asset";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  return serveAsset(request, context);
+}
+
+export async function HEAD(request: Request, context: RouteContext) {
+  return serveAsset(request, context);
 }

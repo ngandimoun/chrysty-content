@@ -98,6 +98,8 @@ export function StoryCreationForm({ onSubmit, onBack, isSubmitting }: StoryCreat
           error={errors.mainIdea?.message}
           placeholder="Describe the story you want to create..."
           onChange={(v) => setValue("mainIdea", v, { shouldValidate: true })}
+          voiceInput
+          disabled={isSubmitting}
         />
       </FormSection>
 

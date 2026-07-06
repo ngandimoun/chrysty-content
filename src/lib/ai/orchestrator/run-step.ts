@@ -5,7 +5,19 @@ import { runStoryStep } from "@/lib/ai/pipelines/story";
 import type { CreationRecord } from "@/lib/content/creations";
 import type { CreationGenerationMetadata } from "@/types/content-metadata";
 
-const STEP_LOCK_MS = 10_000;
+const DEFAULT_STEP_LOCK_MS = 10_000;
+
+const STEP_LOCK_MS_BY_STEP: Record<string, number> = {
+  audio_tts: 120_000,
+  audio_compose: 180_000,
+};
+
+function stepLockMs(step: string | undefined): number {
+  if (step && step in STEP_LOCK_MS_BY_STEP) {
+    return STEP_LOCK_MS_BY_STEP[step]!;
+  }
+  return DEFAULT_STEP_LOCK_MS;
+}
 
 export interface RunStepResult {
   done: boolean;
@@ -40,10 +52,11 @@ export async function runNextStep(creation: CreationRecord): Promise<RunStepResu
     };
   }
 
+  const currentStep = metadata.pipeline.step;
   const stepStartedAt = metadata.pipeline.stepStartedAt;
   if (
     stepStartedAt &&
-    Date.now() - new Date(stepStartedAt).getTime() < STEP_LOCK_MS
+    Date.now() - new Date(stepStartedAt).getTime() < stepLockMs(currentStep)
   ) {
     return {
       done: false,

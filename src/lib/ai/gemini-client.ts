@@ -51,3 +51,11 @@ export function getTtsFallbackModel(): string {
     process.env.GEMINI_TTS_FALLBACK_MODEL ?? "gemini-2.5-flash-preview-tts"
   );
 }
+
+export function getTranscribeModel(): string {
+  return process.env.GEMINI_MODEL_TRANSCRIBE ?? "gemini-3.1-flash-lite";
+}
+
+export function getTranscribeFallbackModel(): string {
+  return process.env.GEMINI_MODEL_TRANSCRIBE_FALLBACK ?? "gemini-3.5-flash";
+}

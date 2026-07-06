@@ -4,6 +4,29 @@ import type { AssetMetadata, CreationAssetType } from "@/types/content-metadata"
 
 import { CONTENT_UPLOADS_BUCKET } from "./constants";
 
+/** Signed URLs for audio playback — avoids session cookies on `<audio src>`. */
+export const SIGNED_AUDIO_URL_TTL_SECONDS = 3600;
+
+export async function createSignedAssetUrl(
+  storagePath: string,
+  ttlSeconds: number = SIGNED_AUDIO_URL_TTL_SECONDS,
+): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.storage
+    .from(CONTENT_UPLOADS_BUCKET)
+    .createSignedUrl(storagePath, ttlSeconds);
+
+  if (error || !data?.signedUrl) {
+    console.warn("[assets] failed to create signed URL", {
+      storagePath,
+      error: error?.message,
+    });
+    return null;
+  }
+
+  return data.signedUrl;
+}
+
 export async function uploadCreationAsset(input: {
   contentKey: string;
   creationId: string;
@@ -97,6 +120,7 @@ export type CoverAssetRow = {
   id: string;
   storage_path: string;
   mime_type: string | null;
+  asset_type?: string | null;
 };
 
 export async function getCoverAssetForCreation(
@@ -215,4 +239,43 @@ export async function listSourceAssetsForCreation(
   }
 
   return data ?? [];
+}
+
+export type ScriptAssetRow = {
+  id: string;
+  storage_path: string;
+  mime_type: string | null;
+};
+
+export async function findCreationAssetByRole(
+  contentKey: string,
+  creationId: string,
+  role: AssetMetadata["role"],
+): Promise<ScriptAssetRow | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("content_creation_assets")
+    .select("id, storage_path, mime_type, metadata")
+    .eq("content_key", contentKey)
+    .eq("creation_id", creationId)
+    .eq("asset_type", "script")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  for (const row of data ?? []) {
+    const meta = row.metadata;
+    if (!meta || typeof meta !== "object") continue;
+    if ((meta as { role?: string }).role === role) {
+      return {
+        id: row.id,
+        storage_path: row.storage_path,
+        mime_type: row.mime_type,
+      };
+    }
+  }
+
+  return null;
 }

@@ -116,7 +116,8 @@ Script rules:
 
 Build ttsPrompt as ONE markdown string (not a nested JSON object). Use \\n between sections: Audio Profile + Scene + Director's Notes + Sample Context per primary host.
 Speaker names in transcript MUST match speakers array exactly.
-Include segments array from plan if multi-segment, with \`transcriptExcerpt\` per segmentId.
+Include segments array from plan if multi-segment. REQUIRED: every plan segmentId must have a matching \`transcriptExcerpt\` in the segments array.
+Each \`transcriptExcerpt\` must be a non-overlapping partition of the full transcript (no segment may repeat the opening or entire script).
 
 Output JSON AudioDirection with mode, targetDurationMinutes, estimatedWordCount, language, speakers, ttsPrompt (single markdown string), transcript, segments.${referenceContextBlock(input.referenceContext)}${webResearchContextBlock(input.webResearchContext, input.webResearchAsOf)}`;
 }

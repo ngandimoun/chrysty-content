@@ -95,6 +95,8 @@ export function AudiobookCreationForm({
           error={errors.topicIdea?.message}
           placeholder="What should this audiobook be about?"
           onChange={(v) => setValue("topicIdea", v, { shouldValidate: true })}
+          voiceInput
+          disabled={isSubmitting}
         />
       </FormSection>
 

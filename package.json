@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx --test src/lib/ai/image/generate.test.ts src/lib/ai/pipelines/story-slots.test.ts"
+    "test": "npx tsx --test src/lib/ai/image/generate.test.ts src/lib/ai/pipelines/story-slots.test.ts src/lib/ai/audio/compose-helpers.test.ts src/lib/ai/audio/tts-segments.test.ts src/lib/content/range-response.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "fast-average-color": "^9.5.2",
     "framer-motion": "^12.42.0",
+    "lamejs": "^1.2.1",
     "lucide-react": "^1.21.0",
     "media-chrome": "^4.19.2",
     "next": "16.2.9",

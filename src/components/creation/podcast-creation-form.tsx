@@ -159,6 +159,8 @@ export function PodcastCreationForm({
             error={errors.topicIdea?.message}
             placeholder="What should this episode be about?"
             onChange={(v) => setValue("topicIdea", v, { shouldValidate: true })}
+            voiceInput
+            disabled={isSubmitting}
           />
         </FormSection>
       )}

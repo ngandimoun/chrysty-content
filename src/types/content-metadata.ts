@@ -320,6 +320,8 @@ export const segmentAssetRecordSchema = z.object({
   durationSeconds: z.number().nonnegative(),
 });
 
+export type SegmentAssetRecord = z.infer<typeof segmentAssetRecordSchema>;
+
 export const webResearchCitationSchema = z.object({
   title: z.string(),
   url: z.string().url(),

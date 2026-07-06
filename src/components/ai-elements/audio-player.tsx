@@ -21,6 +21,16 @@ import {
 import type { ComponentProps, CSSProperties } from "react";
 import { forwardRef } from "react";
 
+function isTouchDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    "ontouchstart" in window ||
+    navigator.maxTouchPoints > 0 ||
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 export type SpeechAudioData = {
   base64: string;
   mediaType: string;
@@ -125,20 +135,35 @@ export type AudioPlayerPlayButtonProps = ComponentProps<typeof MediaPlayButton>;
 export const AudioPlayerPlayButton = ({
   className,
   ...props
-}: AudioPlayerPlayButtonProps) => (
-  <Button
-    nativeButton={false}
-    size="icon-sm"
-    variant="outline"
-    render={
+}: AudioPlayerPlayButtonProps) => {
+  if (isTouchDevice()) {
+    return (
       <MediaPlayButton
-        className={cn("bg-transparent", className)}
+        className={cn(
+          "inline-flex size-7 shrink-0 items-center justify-center rounded-[min(var(--radius-md),12px)] border border-border bg-background hover:bg-muted",
+          className,
+        )}
         data-slot="audio-player-play-button"
         {...props}
       />
-    }
-  />
-);
+    );
+  }
+
+  return (
+    <Button
+      nativeButton={false}
+      size="icon-sm"
+      variant="outline"
+      render={
+        <MediaPlayButton
+          className={cn("bg-transparent", className)}
+          data-slot="audio-player-play-button"
+          {...props}
+        />
+      }
+    />
+  );
+};
 
 export type AudioPlayerSeekBackwardButtonProps = ComponentProps<
   typeof MediaSeekBackwardButton

@@ -252,7 +252,7 @@ export function ContentViewerShell({
 
       {/* Mobile hero — audio only; book mode uses title page + mood ambience */}
       {!immersive && (
-        <div className="relative border-b border-border/60 lg:hidden">
+        <div className="relative border-b border-border/60 md:hidden">
           <MoodBackground
             theme={theme}
             playing={playback.playing}

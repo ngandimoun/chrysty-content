@@ -1,8 +1,14 @@
 import {
   measurePlayableWavSeconds,
+  rewrapPcmAsWav,
+  EXPECTED_WAV,
 } from "@/lib/ai/audio/concat";
+import { encodeWavBufferToMp3 } from "@/lib/ai/audio/encode-mp3";
 import { asMetadata, mergeMetadata } from "@/lib/ai/orchestrator/metadata";
-import { downloadAssetBuffer } from "@/lib/content/assets";
+import {
+  downloadAssetBuffer,
+  uploadCreationAssetBuffer,
+} from "@/lib/content/assets";
 import {
   isManifestDurationCorrupt,
   resolveAudioDurationSeconds,
@@ -17,6 +23,7 @@ type AssetRow = {
   id: string;
   storage_path: string;
   asset_type: string;
+  mime_type: string | null;
   metadata: unknown;
 };
 
@@ -26,23 +33,55 @@ function roleOf(metadata: unknown): string | undefined {
   return typeof role === "string" ? role : undefined;
 }
 
+function isWavAsset(asset: AssetRow): boolean {
+  return (
+    asset.mime_type?.includes("wav") === true ||
+    asset.storage_path.toLowerCase().endsWith(".wav")
+  );
+}
+
+function isMp3Asset(asset: AssetRow): boolean {
+  return (
+    asset.mime_type?.includes("mpeg") === true ||
+    asset.storage_path.toLowerCase().endsWith(".mp3")
+  );
+}
+
+function findMp3NarrationAsset(assets: AssetRow[]): AssetRow | undefined {
+  return assets.find(
+    (asset) =>
+      asset.asset_type === "audio" &&
+      roleOf(asset.metadata) === "narration" &&
+      isMp3Asset(asset),
+  );
+}
+
+function findAssetById(
+  assets: AssetRow[],
+  assetId: string | undefined,
+): AssetRow | undefined {
+  if (!assetId) return undefined;
+  return assets.find((asset) => asset.id === assetId);
+}
+
 async function downloadWavForManifest(
   manifest: AudioManifest,
   assets: AssetRow[],
 ): Promise<Buffer | null> {
   const masterId = manifest.finalAudioAssetId;
-  const master = masterId
-    ? assets.find((a) => a.id === masterId)
-    : undefined;
+  const master = findAssetById(assets, masterId);
 
-  if (master) {
+  if (master && isWavAsset(master)) {
     return downloadAssetBuffer(master.storage_path);
   }
 
+  const mp3Narration = findMp3NarrationAsset(assets);
+  if (mp3Narration) {
+    return null;
+  }
+
   const firstSegmentId = manifest.segments[0]?.audioAssetId;
-  const segment = firstSegmentId
-    ? assets.find((a) => a.id === firstSegmentId)
-    : undefined;
+  const segment = findAssetById(assets, firstSegmentId);
 
   if (segment) {
     return downloadAssetBuffer(segment.storage_path);
@@ -91,6 +130,92 @@ async function persistManifestJson(
   }
 }
 
+async function ensureMp3PlaybackAsset(input: {
+  contentKey: string;
+  creationId: string;
+  manifest: AudioManifest;
+  assets: AssetRow[];
+  manifestStoragePath: string;
+}): Promise<AudioManifest> {
+  const existingMp3 = findMp3NarrationAsset(input.assets);
+  if (existingMp3) {
+    if (input.manifest.finalAudioAssetId === existingMp3.id) {
+      return input.manifest;
+    }
+
+    const updated = {
+      ...input.manifest,
+      finalAudioAssetId: existingMp3.id,
+    };
+    void persistManifestJson(input.manifestStoragePath, updated);
+    return updated;
+  }
+
+  const playbackAsset = findAssetById(
+    input.assets,
+    input.manifest.finalAudioAssetId,
+  );
+
+  if (playbackAsset && isMp3Asset(playbackAsset)) {
+    return input.manifest;
+  }
+
+  let wavBuffer: Buffer | null = null;
+
+  if (playbackAsset && isWavAsset(playbackAsset)) {
+    wavBuffer = await downloadAssetBuffer(playbackAsset.storage_path);
+  } else {
+    wavBuffer = await downloadWavForManifest(input.manifest, input.assets);
+  }
+
+  if (!wavBuffer) {
+    return input.manifest;
+  }
+
+  try {
+    const mp3Buffer = encodeWavBufferToMp3(wavBuffer, input.creationId);
+    const durationSeconds = measurePlayableWavSeconds(
+      wavBuffer,
+      input.creationId,
+    );
+
+    const mp3Asset = await uploadCreationAssetBuffer({
+      contentKey: input.contentKey,
+      creationId: input.creationId,
+      buffer: mp3Buffer,
+      fileName: "master.mp3",
+      mimeType: "audio/mpeg",
+      assetType: "audio",
+      metadata: {
+        role: "narration",
+        altText: `Full audio for ${input.manifest.title}`,
+        durationSeconds,
+        status: "ready",
+      },
+    });
+
+    const updated = {
+      ...input.manifest,
+      finalAudioAssetId: mp3Asset.id,
+    };
+
+    console.info("[manifest-repair] backfilled MP3 playback asset", {
+      creationId: input.creationId,
+      mp3AssetId: mp3Asset.id,
+      byteSize: mp3Buffer.byteLength,
+    });
+
+    void persistManifestJson(input.manifestStoragePath, updated);
+    return updated;
+  } catch (error) {
+    console.warn("[manifest-repair] MP3 backfill failed", {
+      creationId: input.creationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return input.manifest;
+  }
+}
+
 export async function repairAudioManifestIfNeeded(input: {
   contentKey: string;
   creationId: string;
@@ -100,7 +225,8 @@ export async function repairAudioManifestIfNeeded(input: {
   manifestStoragePath: string;
   creationMetadata: Record<string, unknown>;
 }): Promise<AudioManifest> {
-  const { manifest, category } = input;
+  let manifest = await ensureMp3PlaybackAsset(input);
+  const { category } = input;
 
   if (!isManifestDurationCorrupt(manifest, category)) {
     return manifest;

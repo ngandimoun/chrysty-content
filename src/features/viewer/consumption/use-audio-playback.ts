@@ -49,8 +49,9 @@ function resolveMediaErrorMessage(code: number | undefined): string {
     case MEDIA_ERR_NETWORK:
       return "Audio could not be loaded (network error)";
     case MEDIA_ERR_DECODE:
+      return "Audio could not be decoded — try refreshing or use a different device";
     case MEDIA_ERR_SRC_NOT_SUPPORTED:
-      return "This audio format is not supported in your browser";
+      return "This audio file could not be loaded in your browser";
     default:
       return "Audio could not be loaded";
   }
@@ -63,6 +64,38 @@ function audioSrcMatchesUrl(audio: HTMLAudioElement, audioUrl: string): boolean 
     return audio.src === expected || audio.src.endsWith(audioUrl);
   } catch {
     return audio.src.includes(audioUrl);
+  }
+}
+
+async function probeAudioUrl(audioUrl: string): Promise<string | null> {
+  try {
+    const isApiProxy =
+      audioUrl.startsWith("/") ||
+      audioUrl.startsWith(`${window.location.origin}/api/`);
+    const response = await fetch(audioUrl, {
+      method: "HEAD",
+      credentials: isApiProxy ? "include" : "omit",
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      return "Session expired — refresh the page and sign in again";
+    }
+
+    if (!response.ok) {
+      return "Audio could not be loaded";
+    }
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (
+      contentType.includes("application/json") ||
+      contentType.includes("text/html")
+    ) {
+      return "Server returned an error instead of audio — try refreshing the page";
+    }
+
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -235,6 +268,15 @@ export function useAudioPlayback(
         const code = audio.error?.code;
         if (code === MEDIA_ERR_ABORTED) return;
 
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[audio-playback] media error", {
+            code,
+            networkState: audio.networkState,
+            readyState: audio.readyState,
+            src: audio.src,
+          });
+        }
+
         setAudioReady(false);
         setAudioLoadError(resolveMediaErrorMessage(code));
       };
@@ -316,6 +358,27 @@ export function useAudioPlayback(
     bindAudioElement(audioElementRef.current);
   }, [audioUrl, bindAudioElement]);
 
+  useEffect(() => {
+    if (!audioUrl) {
+      setAudioLoadError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setAudioLoadError(null);
+
+    void probeAudioUrl(audioUrl).then((message) => {
+      if (!cancelled && message) {
+        setAudioReady(false);
+        setAudioLoadError(message);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [audioUrl]);
+
   useEffect(() => unbindAudioElement, [unbindAudioElement]);
 
   const seekTo = useCallback(
@@ -349,7 +412,15 @@ export function useAudioPlayback(
         }
         if (error.name === "NotSupportedError") {
           setAudioReady(false);
-          setAudioLoadError("This audio format is not supported in your browser");
+          setAudioLoadError(
+            "Playback is not supported on this device — try refreshing the page",
+          );
+          return;
+        }
+        if (error.name === "NotAllowedError") {
+          setAudioLoadError(
+            "Tap play again to start audio — your browser blocked autoplay",
+          );
           return;
         }
       }

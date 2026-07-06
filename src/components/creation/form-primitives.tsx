@@ -1,8 +1,10 @@
 "use client";
 
+import { useCallback } from "react";
 import type { ReactNode } from "react";
 import type { FieldErrors } from "react-hook-form";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Loader2, Mic } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +12,14 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { CUSTOM_VALUE } from "@/features/creation/creation-options";
 import type { RadioOption } from "@/features/creation/creation-options";
+import { useVoiceTranscription } from "@/hooks/use-voice-transcription";
 import { cn } from "@/lib/utils";
 
 interface WizardStepHeaderProps {
@@ -187,6 +195,122 @@ interface TextAreaFieldProps<T extends Record<string, unknown>> {
   error?: string;
   placeholder?: string;
   onChange: (value: string) => void;
+  voiceInput?: boolean;
+  disabled?: boolean;
+  maxLength?: number;
+}
+
+const IDEA_FIELD_MAX_LENGTH = 2000;
+
+function appendTranscript(
+  existing: string,
+  transcript: string,
+  maxLength: number,
+): { value: string; truncated: boolean } {
+  const merged = existing.trim()
+    ? `${existing.trim()} ${transcript.trim()}`
+    : transcript.trim();
+
+  if (merged.length <= maxLength) {
+    return { value: merged, truncated: false };
+  }
+
+  return { value: merged.slice(0, maxLength), truncated: true };
+}
+
+function VoiceTextAreaField({
+  legend,
+  value,
+  error,
+  placeholder,
+  onChange,
+  disabled = false,
+  maxLength = IDEA_FIELD_MAX_LENGTH,
+}: Omit<TextAreaFieldProps<Record<string, unknown>>, "name" | "voiceInput">) {
+  const handleTranscript = useCallback(
+    (text: string) => {
+      const { value: nextValue, truncated } = appendTranscript(
+        value,
+        text,
+        maxLength,
+      );
+      onChange(nextValue);
+      toast.success("Transcription added");
+      if (truncated) {
+        toast.warning(`Text was trimmed to ${maxLength} characters.`);
+      }
+    },
+    [maxLength, onChange, value],
+  );
+
+  const handleError = useCallback((message: string) => {
+    toast.error(message);
+  }, []);
+
+  const { toggleVoiceInput, isRecording, isTranscribing } =
+    useVoiceTranscription({
+      onTranscript: handleTranscript,
+      onError: handleError,
+      disabled,
+    });
+
+  const micLabel = isTranscribing
+    ? "Transcribing speech"
+    : isRecording
+      ? "Stop recording"
+      : "Voice input";
+
+  const micTooltip = isTranscribing
+    ? "Transcribing…"
+    : isRecording
+      ? "Stop recording"
+      : "Voice input";
+
+  return (
+    <fieldset className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <legend className="text-sm font-medium">{legend}</legend>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => void toggleVoiceInput()}
+                disabled={disabled || isTranscribing}
+                aria-label={micLabel}
+                aria-pressed={isRecording}
+                className={cn(
+                  "text-muted-foreground hover:text-foreground",
+                  isRecording && "text-destructive hover:text-destructive",
+                )}
+              />
+            }
+          >
+            {isTranscribing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Mic className={cn("size-4", isRecording && "animate-pulse")} />
+            )}
+          </TooltipTrigger>
+          <TooltipContent>{micTooltip}</TooltipContent>
+        </Tooltip>
+      </div>
+      <Textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={4}
+        aria-invalid={!!error}
+        className={cn(
+          "min-h-[100px] resize-y",
+          error && "border-destructive ring-3 ring-destructive/20",
+        )}
+      />
+      <FieldError message={error} />
+    </fieldset>
+  );
 }
 
 export function TextAreaField<T extends Record<string, unknown>>({
@@ -195,7 +319,24 @@ export function TextAreaField<T extends Record<string, unknown>>({
   error,
   placeholder,
   onChange,
+  voiceInput = false,
+  disabled = false,
+  maxLength = IDEA_FIELD_MAX_LENGTH,
 }: TextAreaFieldProps<T>) {
+  if (voiceInput) {
+    return (
+      <VoiceTextAreaField
+        legend={legend}
+        value={value}
+        error={error}
+        placeholder={placeholder}
+        onChange={onChange}
+        disabled={disabled}
+        maxLength={maxLength}
+      />
+    );
+  }
+
   return (
     <FormFieldset legend={legend}>
       <Textarea
