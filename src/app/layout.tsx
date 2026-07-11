@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Literata } from "next/font/google";
 
 import { AppProviders } from "@/components/providers/app-providers";
-import { ContentAppShell } from "@/components/layout/content-app-shell";
 
 import "./globals.css";
 
@@ -45,9 +44,7 @@ export default function RootLayout({
         className={`notranslate ${geistSans.variable} ${geistMono.variable} ${literata.variable} min-h-screen font-sans antialiased`}
         translate="no"
       >
-        <ContentAppShell>
-          <AppProviders>{children}</AppProviders>
-        </ContentAppShell>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

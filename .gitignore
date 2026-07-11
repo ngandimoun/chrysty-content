@@ -41,5 +41,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local packages
+packages/live-embed/dist
+
 .vercel
 .env*

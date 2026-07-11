@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import { ChrystyHostContext } from "@chrysty/live-embed";
 import { ArrowLeft } from "lucide-react";
 
 import { CreationCoverArtwork } from "@/components/creation/creation-cover-artwork";
@@ -290,39 +291,53 @@ export function ContentViewerShell({
         </div>
       )}
 
-      <div className="relative mx-auto flex min-h-0 w-full max-w-[1600px] flex-1">
-        {immersive && (
-          <MoodBackground
-            theme={theme}
-            playing={false}
-            coverPalette={coverPalette}
-            className="opacity-[0.12]"
+      <ChrystyHostContext
+        source="content_creation"
+        entityId={creation.id}
+        title={creation.title}
+        captureTarget="#creation-content"
+        worker="content"
+      >
+        <div className="relative mx-auto flex min-h-0 w-full max-w-[1600px] flex-1">
+          {immersive && (
+            <MoodBackground
+              theme={theme}
+              playing={false}
+              coverPalette={coverPalette}
+              className="opacity-[0.12]"
+            />
+          )}
+
+          <SectionNav
+            sections={sections}
+            activeIndex={activeSectionIndex}
+            mode={mode}
+            onSelect={handleSectionSelect}
+            immersive={immersive}
+            className="relative z-10 hidden w-60 shrink-0 lg:flex"
           />
-        )}
 
-        <SectionNav
-          sections={sections}
-          activeIndex={activeSectionIndex}
-          mode={mode}
-          onSelect={handleSectionSelect}
-          immersive={immersive}
-          className="relative z-10 hidden w-60 shrink-0 lg:flex"
-        />
+          <div
+            id="creation-content"
+            data-chrysty-capture
+            className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col"
+          >
+            <ContentPane
+              manifest={manifest}
+              mode={mode}
+              activeSectionIndex={activeSectionIndex}
+              activeSegmentIndex={activeSegmentIndex}
+              creationId={creation.id}
+              currentTime={isAudioMode(mode) ? playback.currentTime : undefined}
+              duration={isAudioMode(mode) ? playback.duration : undefined}
+              onHighlightSaved={(payload) => emitHighlight(payload)}
+              immersive={immersive}
+            />
+          </div>
 
-        <ContentPane
-          manifest={manifest}
-          mode={mode}
-          activeSectionIndex={activeSectionIndex}
-          activeSegmentIndex={activeSegmentIndex}
-          creationId={creation.id}
-          currentTime={isAudioMode(mode) ? playback.currentTime : undefined}
-          duration={isAudioMode(mode) ? playback.duration : undefined}
-          onHighlightSaved={(payload) => emitHighlight(payload)}
-          immersive={immersive}
-        />
-
-        {!immersive && <AssistantPanel creation={creation} />}
-      </div>
+          {!immersive && <AssistantPanel creation={creation} />}
+        </div>
+      </ChrystyHostContext>
 
       <ConsumptionFooter
         mode={mode}

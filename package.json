@@ -7,10 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx --test src/lib/ai/image/generate.test.ts src/lib/ai/pipelines/story-slots.test.ts src/lib/ai/audio/compose-helpers.test.ts src/lib/ai/audio/tts-segments.test.ts src/lib/content/range-response.test.ts"
+    "test": "npx tsx --test src/lib/ai/image/generate.test.ts src/lib/ai/pipelines/story-slots.test.ts src/lib/ai/audio/compose-helpers.test.ts src/lib/ai/audio/tts-segments.test.ts src/lib/content/range-response.test.ts",
+    "postinstall": "npm run build --prefix packages/platform && npm run build --prefix packages/live-embed"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@chrysty/live-embed": "file:packages/live-embed",
     "@chrysty/platform": "file:packages/platform",
     "@google/genai": "^2.10.0",
     "@hookform/resolvers": "^5.4.0",
